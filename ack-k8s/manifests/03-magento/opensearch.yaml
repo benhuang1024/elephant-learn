@@ -1,0 +1,78 @@
+# 学习用：单节点 OpenSearch，关闭安全插件，只在集群内部访问。
+# 注意：阿里云的“开放搜索 OpenSearch”是另一款产品，和开源 OpenSearch 不是一回事。
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+  labels:
+    app: opensearch
+spec:
+  selector:
+    app: opensearch
+  ports:
+    - port: 9200
+      targetPort: 9200
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch
+spec:
+  serviceName: opensearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opensearch
+  template:
+    metadata:
+      labels:
+        app: opensearch
+    spec:
+      securityContext:
+        fsGroup: 1000            # 镜像以 uid 1000 运行，让它能写云盘
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: opensearch
+          image: opensearchproject/opensearch:3
+          env:
+            - name: discovery.type
+              value: single-node
+            # 不用 mmap，就不需要特权容器去改节点的 vm.max_map_count
+            - name: node.store.allow_mmap
+              value: "false"
+            - name: DISABLE_SECURITY_PLUGIN
+              value: "true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+          ports:
+            - containerPort: 9200
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 90
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1536Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/opensearch/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: alicloud-disk-topology-alltype
+        resources:
+          requests:
+            storage: 20Gi

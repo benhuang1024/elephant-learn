@@ -1,0 +1,147 @@
+# 一个 Pod 里放两个容器：nginx（8080）把 PHP 请求通过 127.0.0.1:9000 交给 php-fpm。
+# 两个镜像来自同一次构建、同一个 tag（见 docker/magento/Dockerfile）。
+apiVersion: v1
+kind: Service
+metadata:
+  name: magento
+  labels:
+    app: magento
+spec:
+  selector:
+    app: magento
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: magento
+  labels:
+    app: magento
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: magento
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: magento
+    spec:
+      imagePullSecrets:
+        - name: acr-cred
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 33                  # www-data，让 php-fpm 能写 NAS 上的 pub/media
+        fsGroupChangePolicy: OnRootMismatch   # 只在根目录属主不对时才递归 chown，否则 media 越多 Pod 启动越慢
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # 安装或升级（magento-setup Job）完成之前不启动，避免新代码跑在旧数据库结构上
+        - name: wait-for-db
+          image: magento-php
+          command: ["sh", "-c", "until php bin/magento setup:db:status; do echo 'waiting for magento-setup job...'; sleep 10; done"]
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: env-php
+              mountPath: /var/www/html/app/etc/env.php
+              subPath: env.php
+              readOnly: true
+            - name: var
+              mountPath: /var/www/html/var
+      containers:
+        - name: php-fpm
+          image: magento-php
+          ports:
+            - name: fpm
+              containerPort: 9000
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            # 加固项：确认运行正常后改成 true（var、pub/media、/tmp 已经单独挂载，代码目录可以只读）
+            readOnlyRootFilesystem: false
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          readinessProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 20
+          volumeMounts:
+            - name: env-php
+              mountPath: /var/www/html/app/etc/env.php
+              subPath: env.php       # subPath 挂载不会随 Secret 自动更新，改了 Secret 要重启 Pod
+              readOnly: true
+            - name: media
+              mountPath: /var/www/html/pub/media
+            - name: var              # 每个 Pod 自己的 var/（日志、报告、锁文件）
+              mountPath: /var/www/html/var
+            - name: tmp
+              mountPath: /tmp
+        - name: nginx
+          image: magento-web
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          # health_check.php 会检查 MySQL 和缓存，只适合做 readiness；liveness 只看端口，避免依赖抖动时全体重启
+          readinessProbe:
+            httpGet:
+              path: /health_check.php
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          volumeMounts:
+            - name: media
+              mountPath: /var/www/html/pub/media
+              readOnly: true
+      volumes:
+        - name: env-php
+          secret:
+            secretName: magento-app
+            items:
+              - key: env.php
+                path: env.php
+        - name: media
+          persistentVolumeClaim:
+            claimName: magento-media
+        - name: var
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

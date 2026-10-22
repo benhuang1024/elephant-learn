@@ -1,0 +1,16 @@
+# 不敏感的安装参数。ADMIN_FRONTNAME 要和 env.php 里的 backend.frontName 一致（scripts/magento-secrets.sh 默认也是 admin_k8s）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: magento-config
+data:
+  BASE_URL: "http://magento.example.test/"
+  ADMIN_FRONTNAME: "admin_k8s"
+  ADMIN_USER: "admin"
+  ADMIN_EMAIL: "admin@example.com"
+  DB_HOST: "mysql"
+  DB_NAME: "magento"
+  DB_USER: "magento"
+  LANGUAGE: "en_US"
+  CURRENCY: "CNY"
+  TIMEZONE: "Asia/Shanghai"

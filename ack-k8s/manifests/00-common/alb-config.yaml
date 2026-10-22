@@ -1,0 +1,29 @@
+# ALB Ingress 的“港口大门”：一个 AlbConfig 对应一个 ALB 实例，三个实验共用。
+# 前提：集群已安装 ALB Ingress Controller 组件（控制台 → 组件管理 → 网络）。
+# 把两个 vSwitchId 换成集群 VPC 里两个不同可用区的交换机（控制台 → 专有网络 → 交换机），这两个可用区都要支持 ALB。
+# 注意：ALB 实例按量计费；删除这个 AlbConfig 会同时删除它创建的 ALB 实例，要先删掉所有引用它的 Ingress。
+apiVersion: alibabacloud.com/v1
+kind: AlbConfig
+metadata:
+  name: alb-demo
+spec:
+  config:
+    name: alb-demo
+    addressType: Internet
+    zoneMappings:
+      - vSwitchId: vsw-REPLACE-ZONE-A
+      - vSwitchId: vsw-REPLACE-ZONE-B
+  listeners:
+    - port: 80
+      protocol: HTTP
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+spec:
+  controller: ingress.k8s.alibabacloud/alb
+  parameters:
+    apiGroup: alibabacloud.com
+    kind: AlbConfig
+    name: alb-demo

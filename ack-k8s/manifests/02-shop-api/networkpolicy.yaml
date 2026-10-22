@@ -1,0 +1,17 @@
+# 可选，需要 Terway。只允许 shop-api 访问 PostgreSQL。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-allow-shop-api
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: shop-api
+      ports:
+        - port: 5432

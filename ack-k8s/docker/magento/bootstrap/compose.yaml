@@ -1,0 +1,43 @@
+# 一次性本地引导（14 章第 1 步）：生成 composer.lock 和带 scopes/themes 的 app/etc/config.php。
+# 完成后把这三个文件复制到 ../project/，然后执行 docker compose down -v 并删掉 src/。
+services:
+  mysql:
+    image: mysql:8.4
+    command: ["--log-bin-trust-function-creators=1"]
+    environment:
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 5s
+      retries: 30
+
+  opensearch:
+    image: opensearchproject/opensearch:3
+    environment:
+      discovery.type: single-node
+      node.store.allow_mmap: "false"
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      retries: 30
+
+  php:
+    build:
+      context: ..
+      target: php-base
+    working_dir: /var/www/html
+    environment:
+      COMPOSER_MEMORY_LIMIT: "-1"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy

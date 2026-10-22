@@ -1,0 +1,18 @@
+# 港口大门的导航牌：所有路径都转到 hello-nginx 窗口
+# 不写 host，直接用 ALB 的域名访问即可
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-nginx
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-nginx
+                port:
+                  number: 80

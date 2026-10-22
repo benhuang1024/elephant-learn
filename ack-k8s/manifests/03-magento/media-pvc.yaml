@@ -1,0 +1,13 @@
+# pub/media 要被多个 Web 副本和 cron 同时读写，所以必须是 ReadWriteMany（NAS）。
+# alibabacloud-cnfs-nas 需要集群开启 CNFS；没有的话，按 ACK 文档创建 NAS 动态存储卷的 StorageClass。
+# 只想跑单副本的话，可以改成云盘（ReadWriteOnce），并把 magento 的 replicas 设为 1、不要部署 HPA。
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: magento-media
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: alibabacloud-cnfs-nas
+  resources:
+    requests:
+      storage: 20Gi

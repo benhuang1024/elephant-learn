@@ -1,0 +1,78 @@
+# 安装 / 升级 Job：第一次部署执行 setup:install，以后每次换镜像执行 setup:upgrade。
+# Job 的模板不能修改，所以每次发布前先删掉旧的：
+#   kubectl -n magento delete job magento-setup --ignore-not-found && kubectl apply -k .
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: magento-setup
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        app: magento-setup
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: acr-cred
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: setup
+          image: magento-php
+          command: ["sh", "/scripts/setup.sh"]
+          envFrom:
+            - configMapRef:
+                name: magento-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: magento-db
+                  key: password
+            - name: CRYPT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: magento-app
+                  key: crypt-key
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: magento-app
+                  key: admin-password
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 3Gi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: secrets            # 注意：env.php 挂在 /secrets，不直接挂进 app/etc（安装时要由 setup:install 自己生成）
+              mountPath: /secrets
+              readOnly: true
+            - name: media
+              mountPath: /var/www/html/pub/media
+      volumes:
+        - name: scripts
+          configMap:
+            name: magento-setup-scripts
+        - name: secrets
+          secret:
+            secretName: magento-app
+            items:
+              - key: env.php
+                path: env.php
+        - name: media
+          persistentVolumeClaim:
+            claimName: magento-media
