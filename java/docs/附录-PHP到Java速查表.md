@@ -125,3 +125,17 @@
 13. 在事务中调用慢速外部 HTTP 接口，耗尽连接池。
 14. `static` 集合当缓存，无上限、无过期，最终 OOM。
 15. 多实例部署时 `@Scheduled` 任务在每个实例上都执行。
+
+## 配套代码索引
+
+| 想查什么 | 去哪里 |
+|---|---|
+| record / enum / sealed / 泛型 / Optional / Stream / 异常 / 字符串 | [lang-basics](../code/lang-basics/src/main/java/study/basics/) |
+| 并发竞态、Atomic、虚拟线程、并发容器 | [Concurrency.java](../code/lang-basics/src/main/java/study/basics/Concurrency.java) |
+| Bean、配置绑定、Profile、条件装配 | [shop-api/config](../code/shop-api/src/main/java/study/shop/config/)、[application.yml](../code/shop-api/src/main/resources/application.yml) |
+| Controller、DTO 校验、ProblemDetail、Filter/Interceptor | [product/ProductController.java](../code/shop-api/src/main/java/study/shop/product/ProductController.java)、[common/ApiExceptionHandler.java](../code/shop-api/src/main/java/study/shop/common/ApiExceptionHandler.java) |
+| JPA 实体、Repository、Flyway、事务、乐观锁 | [order/](../code/shop-api/src/main/java/study/shop/order/)、[db/migration/V1__init.sql](../code/shop-api/src/main/resources/db/migration/V1__init.sql) |
+| 自调用失效、CGLIB、自定义切面 | [common/SelfInvocationService.java](../code/shop-api/src/main/java/study/shop/common/SelfInvocationService.java)、[aop/ExecutionTimeAspect.java](../code/shop-api/src/main/java/study/shop/aop/ExecutionTimeAspect.java) |
+| 测试：单元 / 切片 / 集成 / Testcontainers | [shop-api/src/test](../code/shop-api/src/test/java/study/shop/) |
+| Security 过滤器链、HTTP Basic、方法鉴权 | [security/SecurityConfig.java](../code/shop-api/src/main/java/study/shop/security/SecurityConfig.java) |
+| Actuator、Docker、PostgreSQL compose | [application.yml](../code/shop-api/src/main/resources/application.yml)、[Dockerfile](../code/shop-api/Dockerfile)、[compose.yaml](../code/shop-api/compose.yaml) |

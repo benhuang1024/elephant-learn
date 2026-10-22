@@ -72,6 +72,26 @@ public void increment() { count.incrementAndGet(); }   // ✅ CAS 原子操作
 
 `synchronized` 只在 **一个 JVM 内** 有效。部署 3 个实例时，扣库存这种操作仍需要数据库行锁、乐观锁（第 06 章）或 Redis 分布式锁。这一点和 PHP 是一样的。
 
+### 补充：可见性与有序性 —— 只有原子性还不够
+
+`count++` 除了“读-改-写不原子”，还有第二个问题：一个线程写入的值，另一个线程**不保证立刻看见**。CPU 缓存、编译器与 JIT 重排都可能让读线程一直读到旧值：
+
+```java
+private boolean running = true;            // ❌ 工作线程可能永远看不到 false
+private volatile boolean running = true;   // ✅ 保证可见性，并禁止相关重排序
+```
+
+必须记住的几条：
+
+- `volatile` 只保证 **可见性 + 有序性**，**不保证** `i++` 的原子性。
+- `synchronized`、`Atomic*`、`ConcurrentHashMap` 的读写会建立 **happens-before** 关系 —— 原子性和可见性一起解决。
+- `Thread.start()` / `Thread.join()` / `Future.get()` 也建立 happens-before：主线程在 `start()` 前的写入，对新线程可见。
+- 不可变对象（`final` 字段 + 安全发布）不需要额外同步 —— 这是 `record` DTO 的最大优势之一。
+- 双重检查锁（DCL）单例的实例字段必须是 `volatile`，否则可能发布一个“构造未完成”的对象。
+
+配套代码中的 `AtomicCounter` 与 `SynchronizedCounter` 都同时解决了原子性和可见性；
+`UnsafeCounter.count++` 两者都不满足。
+
 ## 3. ThreadLocal：Java 版的“请求上下文”
 
 PHP 里 `$request`、`Auth::user()` 天然是当前请求的。Java 中框架用 **ThreadLocal**（每个线程一份的变量）实现同样效果：

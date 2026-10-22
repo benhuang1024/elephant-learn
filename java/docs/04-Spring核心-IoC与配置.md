@@ -1,5 +1,13 @@
 # 04 Spring 核心：IoC 容器与配置
 
+> **配套代码（shop-api）**
+> 启动类与组件扫描：[ShopApiApplication.java](../code/shop-api/src/main/java/study/shop/ShopApiApplication.java)
+> 构造器注入 + 无状态单例：[ProductService.java](../code/shop-api/src/main/java/study/shop/product/ProductService.java)、[OrderService.java](../code/shop-api/src/main/java/study/shop/order/OrderService.java)
+> 类型安全配置：[ShopProperties.java](../code/shop-api/src/main/java/study/shop/config/ShopProperties.java)、[application.yml](../code/shop-api/src/main/resources/application.yml)
+> Profile 覆盖：[application-postgres.yml](../code/shop-api/src/main/resources/application-postgres.yml)、[application-test.yml](../code/shop-api/src/test/resources/application-test.yml)
+> `@Configuration` / 条件装配：[SecurityConfig.java](../code/shop-api/src/main/java/study/shop/security/SecurityConfig.java)、[DemoDataSeeder.java](../code/shop-api/src/main/java/study/shop/config/DemoDataSeeder.java)
+> 单例状态陷阱的反面教材：[Concurrency.java](../code/lang-basics/src/main/java/study/basics/Concurrency.java)
+
 ## 1. 你已经会了 90%：Laravel Service Container ↔ Spring ApplicationContext
 
 | Laravel | Spring | 说明 |
@@ -157,7 +165,7 @@ public record PaymentProperties(
 
 @SpringBootApplication
 @ConfigurationPropertiesScan            // 扫描所有 @ConfigurationProperties
-public class ShopApplication { ... }
+public class ShopApiApplication { ... }
 ```
 
 配置缺失或类型错误会在 **启动时** 报错，而不是运行到 `config('shop.payment.timeout')` 才发现是 null。

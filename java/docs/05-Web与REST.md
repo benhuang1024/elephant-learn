@@ -1,5 +1,13 @@
 # 05 Web 与 REST
 
+> **配套代码（shop-api）**
+> Controller：[ProductController.java](../code/shop-api/src/main/java/study/shop/product/ProductController.java)、[OrderController.java](../code/shop-api/src/main/java/study/shop/order/OrderController.java)
+> 请求 DTO + Bean Validation：[ProductRequest.java](../code/shop-api/src/main/java/study/shop/product/ProductRequest.java)、[PlaceOrderRequest.java](../code/shop-api/src/main/java/study/shop/order/PlaceOrderRequest.java)
+> 全局异常 → ProblemDetail：[ApiExceptionHandler.java](../code/shop-api/src/main/java/study/shop/common/ApiExceptionHandler.java)
+> Filter（Servlet 层）：[RequestIdFilter.java](../code/shop-api/src/main/java/study/shop/common/RequestIdFilter.java)
+> Interceptor（Spring MVC 层）：[RequestTimingInterceptor.java](../code/shop-api/src/main/java/study/shop/common/RequestTimingInterceptor.java)、[WebConfig.java](../code/shop-api/src/main/java/study/shop/config/WebConfig.java)
+> 接口测试：[ProductControllerTest.java](../code/shop-api/src/test/java/study/shop/product/ProductControllerTest.java)、[OrderControllerTest.java](../code/shop-api/src/test/java/study/shop/order/OrderControllerTest.java)
+
 ## 1. 概念映射
 
 | Laravel | Spring MVC |

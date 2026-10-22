@@ -132,20 +132,30 @@ shop/
 ## 6. 标准目录结构与包命名
 
 ```
-src/main/java/com/acme/shop/
-├── ShopApplication.java        # 启动类，必须在根包，Spring 会扫描它所在包及子包
+src/main/java/study/shop/
+├── ShopApiApplication.java     # 启动类，必须在根包，Spring 会扫描它所在包及子包
 ├── order/                      # 推荐“按业务特性分包”，而不是 controllers/ services/ models/
 │   ├── OrderController.java
 │   ├── OrderService.java
 │   ├── OrderRepository.java
 │   ├── Order.java
-│   └── dto/
-└── product/
+│   └── OrderItem.java
+├── product/
+│   ├── ProductController.java
+│   ├── ProductService.java
+│   ├── ProductRepository.java
+│   └── Product.java
+├── common/                     # 全局异常、ProblemDetail、Filter、自调用演示
+├── config/                     # @ConfigurationProperties、WebMvcConfigurer、演示数据
+└── security/
 src/main/resources/
 ├── application.yml
+├── application-postgres.yml
 └── db/migration/V1__init.sql
-src/test/java/com/acme/shop/...  # 测试与被测类同包，可以访问包级私有成员
+src/test/java/study/shop/...    # 测试与被测类同包，可以访问包级私有成员
 ```
+
+实际工程见 [code/shop-api](../code/shop-api/)，POM 见 [shop-api/pom.xml](../code/shop-api/pom.xml)。
 
 包名约定：反转域名 + 项目 + 模块，全小写，如 `com.acme.shop.order`。
 

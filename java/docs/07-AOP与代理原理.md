@@ -1,5 +1,10 @@
 # 07 AOP 与代理原理 —— 为什么 `@Transactional` 有时不生效
 
+> **配套代码（shop-api）**
+> 自调用反例：[SelfInvocationService.java](../code/shop-api/src/main/java/study/shop/common/SelfInvocationService.java)、[SelfInvocationTest.java](../code/shop-api/src/test/java/study/shop/common/SelfInvocationTest.java)
+> 自定义切面：[LogExecution.java](../code/shop-api/src/main/java/study/shop/aop/LogExecution.java)、[ExecutionTimeAspect.java](../code/shop-api/src/main/java/study/shop/aop/ExecutionTimeAspect.java)、[ExecutionMetrics.java](../code/shop-api/src/main/java/study/shop/aop/ExecutionMetrics.java)
+> 被事务代理的 Service：[OrderService.java](../code/shop-api/src/main/java/study/shop/order/OrderService.java)、[ProductService.java](../code/shop-api/src/main/java/study/shop/product/ProductService.java)
+
 ## 1. 注解本身什么都不做
 
 `@Transactional`、`@Cacheable`、`@Async`、`@PreAuthorize`、`@Retryable` 都只是标记。真正干活的是 Spring 在启动时为 Bean 创建的 **代理对象**：
