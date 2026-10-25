@@ -1,0 +1,21 @@
+{
+  "name": "@ts/lang-basics",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript 语言与运行时可执行笔记（每主题一个文件 + 一个测试）",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "hello": "node scripts/hello.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "expect-type": "1.4.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5",
+    "@ts/eslint-config": "workspace:*"
+  }
+}

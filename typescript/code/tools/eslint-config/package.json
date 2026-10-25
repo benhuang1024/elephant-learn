@@ -1,0 +1,20 @@
+{
+  "name": "@ts/eslint-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "共享 ESLint 扁平配置。注意：typescript-eslint 尚不支持 TS 7 的原生编译器 API，因此这里单独锁 TS 6。",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "globals": "17.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0"
+  },
+  "peerDependencies": {
+    "eslint": ">=10"
+  }
+}

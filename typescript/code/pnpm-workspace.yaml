@@ -1,0 +1,8 @@
+packages:
+  - lang-basics
+  - packages/*
+  - shop-api
+  - tools/*
+  - web-react
+  - web-vue
+  - web-next

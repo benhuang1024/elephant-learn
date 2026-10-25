@@ -1,0 +1,42 @@
+{
+  "name": "@shop/api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NestJS 12 + Drizzle + SQLite：商品与订单，与 java/code/shop-api 接口完全一致",
+  "scripts": {
+    "build": "pnpm --filter @shop/shared build && tsc -p tsconfig.build.json",
+    "typecheck": "pnpm --filter @shop/shared build && tsc --noEmit",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "dev": "pnpm build && node dist/main.js",
+    "test": "pnpm --filter @shop/shared build && vitest run src",
+    "test:e2e": "pnpm build && vitest run --dir test",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.2.0",
+    "@nestjs/config": "12.0.1",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "@shop/shared": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.4",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "12.2.0",
+    "@types/better-sqlite3": "7.6.13",
+    "@types/express": "5.0.6",
+    "@types/node": "^24.10.1",
+    "@types/supertest": "7.2.1",
+    "drizzle-kit": "0.31.11",
+    "supertest": "7.3.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5",
+    "@ts/eslint-config": "workspace:*"
+  },
+  "type": "module"
+}

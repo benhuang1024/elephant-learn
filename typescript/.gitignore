@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+coverage/
+.DS_Store
+*.tsbuildinfo
+.env.local
+
+# Next.js 16 的 dev/build 会自动写入该文件（可由 agentRules: false 关闭）
+code/web-next/AGENTS.md

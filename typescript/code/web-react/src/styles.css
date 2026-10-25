@@ -1,0 +1,102 @@
+:root {
+  color-scheme: light dark;
+  font-family: ui-sans-serif, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f6f7f9;
+  color: #1f2328;
+}
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.hint {
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #f1f2f4;
+  text-align: left;
+}
+
+th {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+tr.picked td {
+  background: #eff6ff;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.state {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.state.ok {
+  color: #15803d;
+}
+
+.state.error {
+  color: #b91c1c;
+}
