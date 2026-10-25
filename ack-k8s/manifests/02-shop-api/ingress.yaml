@@ -1,0 +1,18 @@
+# 只把 /api 暴露出去；/actuator 不经过 Ingress，只在集群内部给探针和监控用
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-api
+spec:
+  ingressClassName: alb
+  rules:
+    - host: shop.example.test
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: shop-api
+                port:
+                  number: 80

@@ -1,0 +1,43 @@
+# 长期订单：永远保持 3 个 nginx 托盘
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-nginx
+  labels:
+    app: hello-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-nginx
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: hello-nginx
+    spec:
+      containers:
+        - name: nginx
+          # 中国内地地域拉 Docker Hub 可能失败：先用 scripts/sync-images.sh 同步到自己的 ACR，再改这里
+          image: nginx:1.30-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m          # 故意设小，方便 HPA 实验时触发扩容
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            periodSeconds: 10

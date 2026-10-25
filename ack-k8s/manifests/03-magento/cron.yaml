@@ -1,0 +1,85 @@
+# Magento cron 用一个常驻的 Deployment 来跑，而不是 K8s CronJob：
+# cron:run 会把各个任务组放到后台子进程里执行，如果用 CronJob，主进程一退出容器就结束，后台任务会被一起杀掉。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: magento-cron
+  labels:
+    app: magento-cron
+spec:
+  replicas: 1                  # 只要一个，多个会重复执行任务
+  strategy:
+    type: Recreate             # 发布时先停旧的再起新的，保证同一时刻只有一个
+  selector:
+    matchLabels:
+      app: magento-cron
+  template:
+    metadata:
+      labels:
+        app: magento-cron
+    spec:
+      imagePullSecrets:
+        - name: acr-cred
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-db
+          image: magento-php
+          command: ["sh", "-c", "until php bin/magento setup:db:status; do echo 'waiting for magento-setup job...'; sleep 10; done"]
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: env-php
+              mountPath: /var/www/html/app/etc/env.php
+              subPath: env.php
+              readOnly: true
+            - name: var
+              mountPath: /var/www/html/var
+      containers:
+        - name: cron
+          image: magento-php
+          command: ["sh", "-c", "trap 'exit 0' TERM; while true; do php bin/magento cron:run; sleep 60 & wait $!; done"]
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: env-php
+              mountPath: /var/www/html/app/etc/env.php
+              subPath: env.php
+              readOnly: true
+            - name: media
+              mountPath: /var/www/html/pub/media
+            - name: var
+              mountPath: /var/www/html/var
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: env-php
+          secret:
+            secretName: magento-app
+            items:
+              - key: env.php
+                path: env.php
+        - name: media
+          persistentVolumeClaim:
+            claimName: magento-media
+        - name: var
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

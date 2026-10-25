@@ -1,0 +1,37 @@
+# kubectl apply -k .
+# 部署前：1) 运行 scripts/magento-secrets.sh 创建 Secret；2) 创建 acr-cred；3) 把下面的镜像地址改成你的 ACR VPC 地址。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: magento
+resources:
+  - namespace.yaml
+  - config.yaml
+  - mysql.yaml
+  - opensearch.yaml
+  - valkey.yaml
+  - media-pvc.yaml
+  - setup-job.yaml
+  - magento.yaml
+  - cron.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+configMapGenerator:
+  - name: magento-setup-scripts
+    files:
+      - scripts/setup.sh
+      - scripts/is-installed.php
+images:
+  - name: magento-php
+    newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/magento-php
+    newTag: "1.0.0"
+  - name: magento-web
+    newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/magento-web
+    newTag: "1.0.0"
+  # 中国内地地域：先用 scripts/sync-images.sh 同步，再打开下面这些
+  # - name: mysql
+  #   newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/mysql
+  # - name: opensearchproject/opensearch
+  #   newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/opensearch
+  # - name: valkey/valkey
+  #   newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/valkey

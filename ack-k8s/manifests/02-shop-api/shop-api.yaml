@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-api
+  labels:
+    app: shop-api
+spec:
+  selector:
+    app: shop-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-api
+  labels:
+    app: shop-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shop-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: shop-api
+    spec:
+      # 用 ACR 免密组件时可以删掉这一段
+      imagePullSecrets:
+        - name: acr-cred
+      # 要大于 preStop 的 10 秒 + Spring 优雅停机的 20 秒（timeout-per-shutdown-phase）
+      terminationGracePeriodSeconds: 40
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001          # 和 Dockerfile 里的 useradd --uid 10001 一致
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: shop-api
+          image: shop-api          # 由 kustomization.yaml 的 images 替换成 ACR 地址
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: postgres
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/shop
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shop-db
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shop-db
+                  key: password
+            # Spring Boot 检测到 K8s 环境会自动开启，这里显式写出来
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              memory: 768Mi        # Dockerfile 里 MaxRAMPercentage=75，堆约 576Mi
+          startupProbe:            # JVM 启动 + Flyway 迁移，最多给 150 秒
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          lifecycle:
+            preStop:               # 先等负载均衡摘掉流量，再开始优雅停机
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp            # 根文件系统只读，内嵌 Tomcat 需要一个可写的 /tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

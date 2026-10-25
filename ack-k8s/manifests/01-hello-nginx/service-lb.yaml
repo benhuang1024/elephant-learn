@@ -1,0 +1,12 @@
+# 在港口外面修一条专用道路：ACK 会自动创建一个公网负载均衡（按量计费，实验完立刻删除）
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-nginx-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: hello-nginx
+  ports:
+    - port: 80
+      targetPort: 80

@@ -1,0 +1,20 @@
+# kubectl apply -k .
+# 部署前先创建 Secret shop-db 和 acr-cred（见 13 章），再把下面的镜像地址改成你自己的 ACR。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: shop
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - shop-api.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+  # - networkpolicy.yaml   # 集群用 Terway 时再打开
+images:
+  - name: shop-api
+    newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/shop-api
+    newTag: "1.0.0"
+  # 中国内地地域：先用 scripts/sync-images.sh 同步，再打开下面这段
+  # - name: postgres
+  #   newName: registry-vpc.cn-hangzhou.aliyuncs.com/REPLACE-NS/postgres

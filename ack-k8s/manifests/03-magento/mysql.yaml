@@ -1,0 +1,81 @@
+# 学习用：集群内单副本 MySQL 8.4。生产环境请用 RDS MySQL，并把参数 log_bin_trust_function_creators 设为 ON。
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          args:
+            # MySQL 8 默认开启 binlog，Magento 建触发器（索引器“按计划更新”模式）时需要这个参数
+            - --log-bin-trust-function-creators=1
+            - --innodb-buffer-pool-size=512M
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: magento-db
+                  key: root-password
+            - name: MYSQL_DATABASE
+              value: magento
+            - name: MYSQL_USER
+              value: magento
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: magento-db
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"]
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+              subPath: mysql        # 避开新云盘根目录的 lost+found
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: alicloud-disk-topology-alltype
+        resources:
+          requests:
+            storage: 20Gi
