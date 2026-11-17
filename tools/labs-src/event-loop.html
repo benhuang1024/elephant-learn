@@ -1,0 +1,136 @@
+<!--LAB
+{"id":"event-loop","title":"事件循环实验台","accent":"#4C9AFF","accent2":"#F7DF1E","track":"typescript","chapter":"docs03-js运行时与事件循环","kicker":"LAB 01 · TypeScript · 第 03 章","lead":"PHP-FPM 一个请求一条直线；Node 一个进程一条事件循环。这里把「同步 → nextTick → 微任务 → 宏任务」拆成逐帧动画：调用栈、三个队列、控制台输出同屏可见。8 个片段的输出顺序全部在构建期用真实 Node 顶层脚本跑过并比对一致。","js":["event-loop.js"],"deps":["event-loop-data.js"]}
+-->
+<div class="lab" data-lab="event-loop">
+  <header class="lab-head">
+    <div class="lh-kicker">LAB 01 · TypeScript · 第 03 章</div>
+    <h1>事件循环实验台</h1>
+    <p class="lh-lead">PHP-FPM 一个请求一条直线；Node 一个进程一条事件循环。这里把「同步 → nextTick → 微任务 → 宏任务」拆成逐帧动画：调用栈、三个队列、控制台输出同屏可见。<b>8 个片段的输出顺序全部在构建期用真实 Node 顶层脚本跑过并比对一致。</b></p>
+    <div class="lh-links">
+      <a href="../typescript.html#docs03-js运行时与事件循环">← 教材第 03 章</a>
+      <a href="../typescript.html#docs05-运行时校验与边界">第 05 章 边界校验</a>
+      <a href="request-lifecycle.html">下一个实验台：请求生命周期 →</a>
+    </div>
+  </header>
+
+  <div class="lab-grid">
+    <section class="lab-stage">
+      <div class="el-phase">
+        <span class="ph-name" id="elPhase">同步阶段</span>
+        <span class="ph-step" id="elStep">步骤 0 / 0</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>运行时快照</h3><span class="ph-tag" id="elSnippetTag">—</span></div>
+        <div class="panel-body">
+          <div class="el-board">
+            <div>
+              <div class="el-q-title"><span class="q-dot" style="background:var(--ta)"></span>调用栈 CALL STACK<span class="q-n" id="elStackN">0</span></div>
+              <div class="el-stack" id="elStack"><span class="el-empty">（空）</span></div>
+            </div>
+            <div class="el-queues">
+              <div class="el-q" id="qTick">
+                <div class="el-q-title"><span class="q-dot" style="background:var(--magenta)"></span>nextTick 队列（Node 独有）<span class="q-n" id="elTickN">0</span></div>
+                <div class="el-q-items" id="elTick"></div>
+              </div>
+              <div class="el-q" id="qMicro">
+                <div class="el-q-title"><span class="q-dot" style="background:var(--success)"></span>微任务 MICROTASK<span class="q-n" id="elMicroN">0</span></div>
+                <div class="el-q-items" id="elMicro"></div>
+              </div>
+              <div class="el-q" id="qMacro">
+                <div class="el-q-title"><span class="q-dot" style="background:var(--warning)"></span>宏任务 MACROTASK<span class="q-n" id="elMacroN">0</span></div>
+                <div class="el-q-items" id="elMacro"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="narration" id="elNote"><span class="nr-k">本帧在发生什么</span>按「播放」或「单步」开始。</div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>控制台输出</h3><span class="ph-tag">顺序 = 真实 Node 实测</span></div>
+        <div class="panel-body"><div class="console el-out" id="elOut"></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>片段源码</h3><span class="ph-tag" id="elLevel">—</span></div>
+        <div class="panel-body"><div class="code-body"><pre id="elCode" style="margin:0;padding:12px 14px;font-family:var(--font-mono);font-size:12.6px;line-height:1.8;color:var(--code-text);background:var(--code-bg);border-radius:10px;border:1px solid var(--code-line);overflow-x:auto"></pre></div></div>
+      </div>
+    </section>
+
+    <aside class="lab-controls">
+      <div class="ctrl-group">
+        <h4>播放</h4>
+        <div class="btn-row">
+          <button class="lab-btn primary wide" id="elPlay" type="button">播放</button>
+          <button class="lab-btn" id="elPrev" type="button" title="上一帧">‹</button>
+          <button class="lab-btn" id="elNext" type="button" title="下一帧">›</button>
+        </div>
+        <div class="ctrl" style="margin-top:12px">
+          <div class="ctrl-label"><span>播放速度</span><output id="elSpeedOut">1.0×</output></div>
+          <input type="range" class="slider" id="elSpeed" min="0.25" max="3" step="0.25" value="1">
+          <div class="ctrl-hint">每帧间隔 = 900ms ÷ 速度。慢速适合第一次看队列轮转。</div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>进度</span><output id="elScrubOut">0</output></div>
+          <input type="range" class="slider" id="elScrub" min="0" max="0" step="1" value="0">
+        </div>
+        <label class="switch"><span class="sw-text">自动循环播放</span><input type="checkbox" id="elLoop"><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">高亮变化的队列</span><input type="checkbox" id="elHot" checked><span class="sw-track"></span></label>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>片段</h4>
+        <div class="ctrl">
+          <select class="lab-select" id="elSnippet"></select>
+        </div>
+        <div class="ctrl-hint" id="elTeach" style="margin-bottom:10px"></div>
+        <div class="btn-row">
+          <button class="lab-btn wide" id="elRandom" type="button">随机片段</button>
+          <button class="lab-btn wide" id="elReset" type="button">重置</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>显示</h4>
+        <label class="switch"><span class="sw-text">显示 nextTick 队列</span><input type="checkbox" id="elShowTick" checked><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">显示帧注解</span><input type="checkbox" id="elShowNote" checked><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">源码逐行高亮当前帧</span><input type="checkbox" id="elShowSrc" checked><span class="sw-track"></span></label>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="lab-btn wide" id="elExport" type="button">导出 trace JSON</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>校验</h4>
+        <div class="readouts" style="grid-template-columns:1fr 1fr">
+          <div class="readout ok"><b id="elVerified">8/8</b><span>构建期实测一致</span></div>
+          <div class="readout info"><b id="elFrames">0</b><span>本片段帧数</span></div>
+        </div>
+        <div class="ctrl-hint">校验方式：把片段作为顶层脚本交给真实 Node 进程执行，收集 console 输出序列，与 trace 的 log 帧逐条比对。</div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="lab-explain">
+    <div class="ex-card php">
+      <h4>PHP 架构师的对照</h4>
+      <p>PHP-FPM 是 <code>share-nothing</code>：每个请求 bootstrap 一次框架，请求结束释放全部内存。所以「顺序」在一个请求内就是一条直线，你从来不需要考虑队列。</p>
+      <p>用过 Octane / Swoole / RoadRunner 的话你已经有半个直觉：协程让出点 ≈ <code>await</code>，<code>Swoole\Coroutine::defer</code> ≈ 微任务。差别是 Node 把这件事变成了<b>语言默认</b>，而不是可选扩展。</p>
+    </div>
+    <div class="ex-card">
+      <h4>三条最容易记错的规则</h4>
+      <ul>
+        <li><code>setTimeout(fn, 0)</code> 不是立刻：它排在<b>所有</b>微任务后面。</li>
+        <li>微任务阶段是「清空为止」：微任务里再生的微任务仍在本轮执行，早于下一个宏任务。</li>
+        <li><code>await</code> 不释放线程，只释放「这段代码往后」的执行权；<code>await null</code> 也会让出。</li>
+      </ul>
+    </div>
+    <div class="ex-card">
+      <h4>为什么这章值一整天</h4>
+      <p>单线程保证的是「一段同步代码不会被打断」，<b>不保证</b>「你的函数从头到尾原子」。看「await 让出点竞态」片段：全程一个线程，余额仍被扣成 -20。</p>
+      <p>修法不是加锁，而是：await 之后再检查 + 把唯一真相放数据库（事务 + 乐观锁）。进程内变量做不了分布式一致性。</p>
+    </div>
+  </section>
+</div>

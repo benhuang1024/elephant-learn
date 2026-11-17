@@ -1,0 +1,46 @@
+<!--LAB
+{"id":"cheatsheet","title":"PHP → X 速查表","accent":"#37E39B","accent2":"#FFB020","track":"all","chapter":"","kicker":"LAB 05 · 全部教材 · 附录合并","lead":"六套教材的附录对照表合并成一张可即时过滤的大表：语法、常用函数、框架概念、常见坑。支持按教材 / 分类 / 关键词过滤，「只看坑」一键聚焦 PHP 直觉失效点。点任意行复制该条对照。","js":["cheatsheet.js"],"deps":["cheatsheet-data.js"]}
+-->
+<div class="lab" data-lab="cheatsheet">
+  <header class="lab-head">
+    <div class="lh-kicker">LAB 05 · 全部教材 · 附录合并</div>
+    <h1>PHP → X 速查表</h1>
+    <p class="lh-lead">六套教材的附录对照表合并成一张可即时过滤的大表：语法、常用函数、框架概念、常见坑。支持按教材 / 分类 / 关键词过滤，「只看坑」一键聚焦 PHP 直觉失效点。<b>点任意行复制该条对照。</b></p>
+    <div class="lh-links">
+      <a href="../typescript.html#docs附录-php到typescript速查表">TS 附录</a>
+      <a href="../python.html#docs附录-php到python速查表">Python 附录</a>
+      <a href="../java.html#docs附录-php到java速查表">Java 附录</a>
+      <a href="../ack-k8s.html#附录-概念对照表与速查">K8s 对照表</a>
+    </div>
+  </header>
+
+  <div class="cs-bar">
+    <div class="seg" id="csTrack" style="flex:0 1 auto"></div>
+    <select class="lab-select" id="csCat" style="flex:0 1 220px"></select>
+    <input class="lab-text" id="csQuery" type="search" placeholder="过滤：array_map / 事务 / GIL / Pod / 变更…" autocomplete="off">
+    <label class="switch" style="flex:0 0 auto"><span class="sw-text">只看坑</span><input type="checkbox" id="csPit"><span class="sw-track"></span></label>
+    <label class="switch" style="flex:0 0 auto"><span class="sw-text">紧凑</span><input type="checkbox" id="csCompact"><span class="sw-track"></span></label>
+    <span class="cs-count" id="csCount"></span>
+    <button class="lab-btn" id="csCopy" type="button">复制可见行</button>
+    <button class="lab-btn" id="csExport" type="button">导出 CSV</button>
+  </div>
+
+  <div class="cs-table-wrap" id="csWrap">
+    <table class="cs-table" id="csTable"></table>
+  </div>
+
+  <section class="lab-explain">
+    <div class="ex-card php">
+      <h4>怎么用这张表</h4>
+      <p>评审别人代码时开着它：看到陌生写法，先搜 PHP 侧的等价物，再读第三列的「差异与坑」。第三列才是这张表的价值——前两列只是翻译。</p>
+    </div>
+    <div class="ex-card">
+      <h4>「只看坑」是什么</h4>
+      <p>标记为坑的行，是教材里明确写了「语义不等价 / 直觉失效 / 会翻车」的条目。例如 <code>empty([])</code> 与 <code>![]</code>、<code>array_map</code> 传 <code>parseInt</code>、JS 的 <code>||</code> 吃掉 <code>0</code>。</p>
+    </div>
+    <div class="ex-card">
+      <h4>数据来源</h4>
+      <p>构建期从各教材附录的 Markdown 表格抽取，保留行内代码与链接语义；K8s 一栏是「技术概念 ↔ 港口类比 ↔ 类比不成立的地方」。</p>
+    </div>
+  </section>
+</div>

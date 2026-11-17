@@ -1,0 +1,141 @@
+<!--LAB
+{"id":"request-lifecycle","title":"一个请求的生命周期","accent":"#FF7AB8","accent2":"#4C9AFF","track":"typescript","chapter":"docs07-nestjs-web与rest","kicker":"LAB 04 · NestJS · 第 07 章","lead":"Middleware → Guard → Interceptor → Pipe → Controller → Service → Repository → Filter，逐站点亮。校验用的是仓库 @shop/shared 的真实 schema；库存、乐观锁、problem+json 载荷与 shop-api 逐字段对齐。 repeated 下单会真的扣库存、涨 version。","js":["request-lifecycle.js"],"deps":["shared-bundle.js"]}
+-->
+<div class="lab" data-lab="request-lifecycle">
+  <header class="lab-head">
+    <div class="lh-kicker">LAB 04 · NestJS · 第 07 章</div>
+    <h1>一个请求的生命周期</h1>
+    <p class="lh-lead">Middleware → Guard → Interceptor → Pipe → Controller → Service → Repository → Filter，逐站点亮。校验用的是仓库 <code>@shop/shared</code> 的真实 schema；库存、乐观锁、problem+json 载荷与 shop-api 逐字段对齐。<b>重复下单会真的扣库存、涨 version。</b></p>
+    <div class="lh-links">
+      <a href="../typescript.html#docs07-nestjs-web与rest">← 教材第 07 章</a>
+      <a href="../typescript.html#docs06-nestjs核心-模块与di">第 06 章 模块与 DI</a>
+      <a href="../typescript.html#docs08-数据访问与事务">第 08 章 事务与乐观锁</a>
+    </div>
+  </header>
+
+  <div class="lab-grid">
+    <section class="lab-stage">
+      <div class="panel">
+        <div class="panel-head"><h3>请求管线</h3><span class="ph-tag" id="rlTag">等待发送</span></div>
+        <div class="panel-body"><div class="rl-track" id="rlTrack"></div></div>
+      </div>
+
+      <div class="tb-grid">
+        <div class="panel">
+          <div class="panel-head"><h3>响应</h3><span class="ph-tag" id="rlRespTag">—</span></div>
+          <div class="panel-body"><div id="rlStatus"></div><div class="console" id="rlResp" style="max-height:280px"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>进程内 SQLite（演示库）</h3><span class="ph-tag">常驻 · 跨请求存活</span></div>
+          <div class="panel-body">
+            <div class="table-wrap" style="margin:0"><table class="md-table" id="rlDb"></table></div>
+            <div class="ctrl-hint" style="margin-top:8px">注意：这张表活在<b>进程</b>里，不是请求里。PHP-FPM 做不到这件事（除非 APCu / 外部存储）。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>结构化日志</h3><span class="ph-tag" id="rlLogTag">normal</span></div>
+        <div class="panel-body"><div class="console" id="rlLog" style="max-height:240px"></div></div>
+      </div>
+    </section>
+
+    <aside class="lab-controls">
+      <div class="ctrl-group">
+        <h4>请求</h4>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>方法与路由</span></div>
+          <div class="seg" id="rlMethod">
+            <button data-v="order" class="on" type="button">POST /orders</button>
+            <button data-v="delete" type="button">DELETE /products/1</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <select class="lab-select" id="rlPreset"></select>
+        </div>
+        <div class="ctrl">
+          <textarea class="lab-input" id="rlBody" spellcheck="false" style="min-height:110px"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="lab-btn primary wide" id="rlSend" type="button">发送请求</button>
+          <button class="lab-btn" id="rlStep" type="button" title="单步">单步</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>认证与协商</h4>
+        <label class="switch"><span class="sw-text">携带 Basic 认证</span><input type="checkbox" id="rlAuth" checked><span class="sw-track"></span></label>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>账号角色</span></div>
+          <div class="seg" id="rlRole">
+            <button data-v="customer" class="on" type="button">customer</button>
+            <button data-v="admin" type="button">admin</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>Accept 头</span></div>
+          <div class="seg" id="rlAccept">
+            <button data-v="json" class="on" type="button">application/json</button>
+            <button data-v="any" type="button">*/*</button>
+          </div>
+          <div class="ctrl-hint">复刻 Spring Security 的 Accept 分支：json → 401 空 body；*/* → 带 WWW-Authenticate。</div>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>业务状态</h4>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>SKU-003 库存</span><output id="rlStockOut">2</output></div>
+          <input type="range" class="slider" id="rlStock" min="0" max="20" step="1" value="2">
+        </div>
+        <label class="switch"><span class="sw-text">并发两单（乐观锁冲突）</span><input type="checkbox" id="rlRace"><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">慢查询（+1200ms）</span><input type="checkbox" id="rlSlow"><span class="sw-track"></span></label>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>动画速度</span><output id="rlSpeedOut">1.0×</output></div>
+          <input type="range" class="slider" id="rlSpeed" min="0.5" max="4" step="0.5" value="1">
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>观察</h4>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>日志级别</span></div>
+          <div class="seg" id="rlLogLevel">
+            <button data-v="silent" type="button">silent</button>
+            <button data-v="normal" class="on" type="button">normal</button>
+            <button data-v="verbose" type="button">verbose</button>
+          </div>
+        </div>
+        <div class="readouts" style="grid-template-columns:1fr 1fr;margin-top:10px">
+          <div class="readout info"><b id="rlCount">0</b><span>已处理请求</span></div>
+          <div class="readout"><b id="rlElapsed">—</b><span>最近耗时 ms</span></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="lab-btn wide" id="rlReset" type="button">重置演示库</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="lab-explain">
+    <div class="ex-card php">
+      <h4>PHP 架构师的对照</h4>
+      <p>Laravel 的管线是 <code>Middleware → Controller → (FormRequest 校验) → Service</code>；Nest 把校验抽成 <b>Pipe</b>、把认证抽成 <b>Guard</b>、把横切计时抽成 <b>Interceptor</b>、把异常映射抽成 <b>Filter</b>。</p>
+      <p>顺序很重要：Guard 在 Pipe 之前——未认证的请求根本不会走到校验；Filter 在最外圈——任何一站抛错都被它接住转成 problem+json。</p>
+    </div>
+    <div class="ex-card">
+      <h4>四个值得记住的分支</h4>
+      <ul>
+        <li>无认证 → <code>401</code>，Accept 决定有没有 body 与 WWW-Authenticate。</li>
+        <li>customer 删商品 → <code>403</code>；admin → <code>204</code> 空 body。</li>
+        <li>校验失败 → <code>400</code> + <code>errors: {"items[0].quantity": …}</code>。</li>
+        <li>库存不足 / 乐观锁冲突 → <code>409</code> + problem+json，带 sku/requested/available。</li>
+      </ul>
+    </div>
+    <div class="ex-card">
+      <h4>为什么并发会 409</h4>
+      <p>两个请求都读到 <code>version=0</code>；第一个 commit 后 version=1；第二个的 <code>UPDATE … WHERE id=? AND version=0</code> 影响 0 行 → 抛乐观锁冲突。</p>
+      <p>语义与 Hibernate 的 <code>@Version</code> 一致，只是这里手写 WHERE。打开「并发两单」看第二个请求在 Repository 站变红。</p>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,127 @@
+<!--LAB
+{"id":"type-boundary","title":"类型擦除与边界校验","accent":"#F7DF1E","accent2":"#4C9AFF","track":"typescript","chapter":"docs05-运行时校验与边界","kicker":"LAB 03 · TypeScript · 第 05 章","lead":"TS 的类型在运行时一个字节都不剩。这里跑的是仓库 @shop/shared 的 schema 本体（zod 4.6.7，构建期打包进浏览器）：把脏 JSON 打进 DTO，看编译器沉默、Zod 拦截，以及全局过滤器最终吐出的 problem+json。","js":["type-boundary.js"],"deps":["shared-bundle.js"]}
+-->
+<div class="lab" data-lab="type-boundary">
+  <header class="lab-head">
+    <div class="lh-kicker">LAB 03 · TypeScript · 第 05 章</div>
+    <h1>类型擦除与边界校验</h1>
+    <p class="lh-lead">TS 的类型在运行时一个字节都不剩。这里跑的是仓库 <code>@shop/shared</code> 的 schema 本体（zod 4.6.7，构建期打包进浏览器）：把脏 JSON 打进 DTO，看编译器沉默、Zod 拦截，以及全局过滤器最终吐出的 <code>application/problem+json</code>。</p>
+    <div class="lh-links">
+      <a href="../typescript.html#docs05-运行时校验与边界">← 教材第 05 章</a>
+      <a href="../typescript.html#docs07-nestjs-web与rest">第 07 章 请求管线</a>
+      <a href="request-lifecycle.html">下一个实验台：请求生命周期 →</a>
+    </div>
+  </header>
+
+  <div class="lab-grid">
+    <section class="lab-stage">
+      <div class="tb-grid">
+        <div class="panel">
+          <div class="panel-head"><h3>入站 JSON（HTTP body）</h3><span class="ph-tag" id="tbSchemaTag">PlaceOrderRequest</span></div>
+          <div class="panel-body">
+            <textarea class="lab-input" id="tbPayload" spellcheck="false" style="min-height:230px"></textarea>
+            <div class="ctrl-hint" id="tbParseState" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>TS 编译器视角 vs 运行时视角</h3><span class="ph-tag">类型擦除</span></div>
+          <div class="panel-body">
+            <div class="tb-type" id="tbTypeView"></div>
+            <div class="narration" style="margin-top:12px;min-height:0"><span class="nr-k">擦除意味着什么</span><span id="tbEraseNote">编译期：body 被断言成 PlaceOrderRequest。运行时：它只是一个普通对象，没有任何字段保证。</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Zod 校验结果（safeParse）</h3><span class="ph-tag" id="tbResultTag">—</span></div>
+        <div class="panel-body" id="tbResult"></div>
+      </div>
+
+      <div class="tb-grid">
+        <div class="panel">
+          <div class="panel-head"><h3>全局过滤器输出 · problem+json</h3><span class="ph-tag">HTTP 400 / 201</span></div>
+          <div class="panel-body"><div class="console" id="tbProblem" style="max-height:260px"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>金额：number 的陷阱</h3><span class="ph-tag">整数分 / 品牌字符串</span></div>
+          <div class="panel-body">
+            <div class="readouts" style="grid-template-columns:1fr 1fr">
+              <div class="readout bad"><b id="tbFloat">0.30000…</b><span>0.1 + 0.2 的 double 结果</span></div>
+              <div class="readout ok"><b id="tbCents">30</b><span>整数分运算结果</span></div>
+            </div>
+            <div class="console" id="tbMoney" style="margin-top:10px;min-height:96px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="lab-controls">
+      <div class="ctrl-group">
+        <h4>契约</h4>
+        <div class="ctrl">
+          <select class="lab-select" id="tbSchema">
+            <option value="order">PlaceOrderRequest（下单）</option>
+            <option value="product">CreateProductRequest（建商品）</option>
+            <option value="query">ProductQuery（查询参数）</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label"><span>未知字段策略</span></div>
+          <div class="seg" id="tbUnknown">
+            <button data-v="strip" class="on" type="button">strip 丢弃</button>
+            <button data-v="strict" type="button">strict 报错</button>
+            <button data-v="pass" type="button">passthrough</button>
+          </div>
+          <div class="ctrl-hint">Laravel FormRequest 默认丢弃多余字段；strict 更像「契约洁癖」。</div>
+        </div>
+        <label class="switch"><span class="sw-text">coerce：字符串数字转 number</span><input type="checkbox" id="tbCoerce"><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">应用 default（stock=0）</span><input type="checkbox" id="tbDefault" checked><span class="sw-track"></span></label>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>脏样本</h4>
+        <div class="seg" id="tbPresets" style="flex-direction:column"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="lab-btn wide" id="tbReset" type="button">恢复合法样本</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>视角</h4>
+        <label class="switch"><span class="sw-text">运行时视角（划掉类型）</span><input type="checkbox" id="tbRuntime" checked><span class="sw-track"></span></label>
+        <label class="switch"><span class="sw-text">显示推导类型 z.infer</span><input type="checkbox" id="tbInfer" checked><span class="sw-track"></span></label>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="lab-btn wide" id="tbCopy" type="button">复制 problem+json</button>
+          <button class="lab-btn wide" id="tbExport" type="button">导出校验报告</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <h4>读数</h4>
+        <div class="readouts" style="grid-template-columns:1fr 1fr">
+          <div class="readout" id="tbStatusBox"><b id="tbStatus">—</b><span>safeParse</span></div>
+          <div class="readout warn"><b id="tbErrCount">0</b><span>字段错误数</span></div>
+        </div>
+        <div class="ctrl-hint">错误 map 的键是 <code>items[0].quantity</code> 这种嵌套路径，与 Java 版 @Valid 级联结果逐字段一致。</div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="lab-explain">
+    <div class="ex-card php">
+      <h4>PHP 架构师的对照</h4>
+      <p>Laravel 的 <code>FormRequest::validate()</code> / Symfony 的 Validator 是<b>运行时</b>校验；PHPStan / Psalm 是<b>静态</b>检查。两者各司其职。</p>
+      <p>TS 把「静态检查」做到了语言里，但<b>没有</b>自带运行时校验。所以 <code>body as PlaceOrderRequest</code> 只是一句谎言：编译器信了，运行时什么都没有。Zod 就是补上 FormRequest 那一半。</p>
+    </div>
+    <div class="ex-card">
+      <h4>一处定义，四端复用</h4>
+      <p>schema 是运行时的值，类型从它推导：<code>type X = z.infer&lt;typeof S&gt;</code>。服务端 Pipe 用它校验，前端表单用它解析响应，契约测试用它断言形状——改一处，四端一起变。</p>
+      <p>这就是第 14 章 monorepo 里 <code>@shop/shared</code> 的存在理由：不是「共享工具函数」，是<b>共享契约</b>。</p>
+    </div>
+    <div class="ex-card">
+      <h4>为什么金额不用 number</h4>
+      <p><code>0.1 + 0.2 !== 0.3</code> 与 PHP float 同源；更隐蔽的是 <code>JSON.stringify(599.00) === "599"</code>——数字字面量没有「几位小数」。</p>
+      <p>仓库方案：DTO 层品牌字符串 <code>"599.00"</code>，运算全走整数分，出口才写回 JSON 数字。语义等价、字面差异被关在两个函数里。</p>
+    </div>
+  </section>
+</div>
